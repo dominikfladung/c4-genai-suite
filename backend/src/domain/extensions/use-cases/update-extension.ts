@@ -3,8 +3,8 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtensionEntity, ExtensionRepository } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
-import { ConfigurationHistoryService } from '../services';
 import { ConfiguredExtension, ExtensionConfiguration, ExtensionObjectArgument } from '../interfaces';
+import { ConfigurationHistoryService } from '../services';
 import { ExplorerService } from '../services';
 import { buildExtension, maskArgumentDefault, maskKeyValues, unmaskExtensionValues, validateConfiguration } from './utils';
 

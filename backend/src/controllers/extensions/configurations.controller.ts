@@ -316,7 +316,7 @@ export class ConfigurationsController {
   @UseGuards(RoleGuard)
   async getConfigurationHistory(@Param('id', ParseIntPipe) id: number): Promise<ConfigurationHistoryDto[]> {
     const history = await this.historyService.getHistory(id);
-    return history.map(ConfigurationHistoryDto.fromDomain);
+    return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
   }
 
   @Get(':id/history/:version')
@@ -431,6 +431,6 @@ export class ConfigurationsController {
   @UseGuards(RoleGuard)
   async getRecentChanges(@Query('limit', ParseIntPipe) limit: number = 50): Promise<ConfigurationHistoryDto[]> {
     const history = await this.historyService.getRecentChanges(limit);
-    return history.map(ConfigurationHistoryDto.fromDomain);
+    return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
   }
 }

@@ -10,8 +10,8 @@ import {
   ExtensionEntity,
   ExtensionRepository,
 } from '../../database';
-import { ConfigurationHistoryService } from '../services';
 import { ConfigurationModel } from '../interfaces';
+import { ConfigurationHistoryService } from '../services';
 import { buildConfiguration } from './utils';
 
 export class DuplicateConfiguration {

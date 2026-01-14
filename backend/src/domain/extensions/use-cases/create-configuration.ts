@@ -9,8 +9,8 @@ import {
   UserGroupRepository,
 } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
-import { ConfigurationHistoryService } from '../services';
 import { ConfigurationModel } from '../interfaces';
+import { ConfigurationHistoryService } from '../services';
 import { buildConfiguration } from './utils';
 
 type Values = Partial<

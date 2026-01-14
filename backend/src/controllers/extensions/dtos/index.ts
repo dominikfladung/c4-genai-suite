@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ChatSuggestionDto } from 'src/controllers/shared';
+import { ConfigurationHistoryEntity } from 'src/domain/database';
 import {
   ConfigurationModel,
   ConfigurationUserValuesModel,
@@ -924,7 +925,7 @@ export class ConfigurationHistoryDto {
   })
   createdAt!: Date;
 
-  static fromDomain(source: any) {
+  static fromDomain(source: ConfigurationHistoryEntity) {
     const result = new ConfigurationHistoryDto();
     result.id = source.id;
     result.configurationId = source.configurationId;

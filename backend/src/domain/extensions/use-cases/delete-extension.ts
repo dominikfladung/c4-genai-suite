@@ -21,7 +21,7 @@ export class DeleteExtensionHandler implements ICommandHandler<DeleteExtension, 
   ) {}
 
   async execute(command: DeleteExtension): Promise<any> {
-    const { id, userId, configurationId } = command;
+    const { userId, configurationId } = command;
 
     // Get extension details before deletion for snapshot
     const extension = await this.extensions.findOneBy({ id: command.id });

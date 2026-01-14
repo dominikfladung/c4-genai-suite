@@ -53,9 +53,7 @@ export class AddConfigurationHistory1737410559284 implements MigrationInterface 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop foreign key constraints
     await queryRunner.query(`ALTER TABLE "configuration_history" DROP CONSTRAINT "FK_configuration_history_changedBy"`);
-    await queryRunner.query(
-      `ALTER TABLE "configuration_history" DROP CONSTRAINT "FK_configuration_history_configurationId"`,
-    );
+    await queryRunner.query(`ALTER TABLE "configuration_history" DROP CONSTRAINT "FK_configuration_history_configurationId"`);
 
     // Drop indexes
     await queryRunner.query(`DROP INDEX "IDX_configuration_history_configurationId_version"`);

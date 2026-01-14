@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   ConfigurationEntity,
   ConfigurationHistoryEntity,
   ConfigurationSnapshot,
   ConfigurationStatus,
+  ExtensionEntity,
   ExtensionSnapshot,
 } from 'src/domain/database';
 import { ConfigurationHistoryRepository } from 'src/domain/database/repositories/configuration-history.repository';
@@ -18,7 +19,7 @@ export class ConfigurationHistoryService {
     @InjectRepository(ConfigurationHistoryEntity)
     private readonly historyRepository: ConfigurationHistoryRepository,
     @InjectRepository(ConfigurationEntity)
-    private readonly configurationRepository: any,
+    private readonly configurationRepository: Repository<ConfigurationEntity>,
     private readonly dataSource: DataSource,
     private readonly explorerService: ExplorerService,
   ) {}
@@ -36,14 +37,14 @@ export class ConfigurationHistoryService {
       throw new NotFoundException(`Configuration ${configurationId} not found`);
     }
 
-    const snapshot = await this.buildSnapshot(configuration);
+    const snapshot = this.buildSnapshot(configuration);
     await this.historyRepository.createSnapshot(configurationId, snapshot, userId, action, comment);
   }
 
   /**
    * Build a snapshot object from a configuration entity
    */
-  private async buildSnapshot(configuration: ConfigurationEntity): Promise<ConfigurationSnapshot> {
+  private buildSnapshot(configuration: ConfigurationEntity): ConfigurationSnapshot {
     const extensions: ExtensionSnapshot[] = [];
 
     if (configuration.extensions) {
@@ -57,6 +58,7 @@ export class ConfigurationHistoryService {
             spec: extension.spec,
             values: maskedValues,
           };
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           maskKeyValues(tempConfigured as any);
         }
 
@@ -164,8 +166,8 @@ export class ConfigurationHistoryService {
       }
 
       // Recreate extensions from snapshot
-      configuration.extensions = snapshot.extensions.map((extSnapshot) => {
-        const extension = queryRunner.manager.create('ExtensionEntity', {
+      const newExtensions = snapshot.extensions.map((extSnapshot) => {
+        return queryRunner.manager.create(ExtensionEntity, {
           name: extSnapshot.name,
           externalId: extSnapshot.externalId,
           enabled: extSnapshot.enabled,
@@ -174,8 +176,9 @@ export class ConfigurationHistoryService {
           configurableArguments: extSnapshot.configurableArguments,
           configurationId: configuration.id,
         });
-        return extension;
       });
+
+      configuration.extensions = newExtensions;
 
       await queryRunner.manager.save(ConfigurationEntity, configuration);
       await queryRunner.commitTransaction();
