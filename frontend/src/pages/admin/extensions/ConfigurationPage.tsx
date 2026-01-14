@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { IconUpload } from '@tabler/icons-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Route, Routes } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -22,6 +23,7 @@ export function ConfigurationPage() {
   const [toCreate, setToCreate] = useState<boolean>();
   const [toUpdate, setToUpdate] = useState<ConfigurationDto | null>(null);
   const { configurations, removeConfiguration, setConfiguration, setConfigurations } = useConfigurationStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: loadedConfigurations, isFetched } = useQuery({
     queryKey: [`configurations_${i18n.language}`],
@@ -60,6 +62,57 @@ export function ConfigurationPage() {
     },
   });
 
+  const exportConfig = useMutation({
+    mutationFn: async (configuration: ConfigurationDto) => {
+      const data = await api.extensions.exportConfiguration(configuration.id);
+      // Create blob and trigger download
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${configuration.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_config.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    },
+    onSuccess: () => {
+      toast.success(texts.extensions.exportConfigurationSuccess);
+    },
+    onError: async (error) => {
+      toast.error(await buildError(texts.extensions.exportConfigurationFailed, error));
+    },
+  });
+
+  const importConfig = useMutation({
+    mutationFn: async (file: File) => {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      return api.extensions.importConfiguration(data);
+    },
+    onSuccess: (configuration) => {
+      setConfiguration(configuration);
+      toast.success(texts.extensions.importConfigurationSuccess);
+      navigate(`/admin/assistants/${configuration.id}`);
+    },
+    onError: async (error) => {
+      toast.error(await buildError(texts.extensions.importConfigurationFailed, error));
+    },
+  });
+
+  const handleImport = useEventCallback(() => {
+    fileInputRef.current?.click();
+  });
+
+  const handleFileChange = useEventCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      importConfig.mutate(file);
+      // Reset input so the same file can be selected again
+      event.target.value = '';
+    }
+  });
+
   const doCreate = useEventCallback((configuration: ConfigurationDto) => {
     setConfiguration(configuration);
     navigate(`/admin/assistants/${configuration.id}`);
@@ -79,9 +132,19 @@ export function ConfigurationPage() {
               {texts.extensions.configurations}
             </h3>
 
+            <button className="btn btn-square btn-sm text-sm mr-2" onClick={handleImport} title={texts.common.import}>
+              <IconUpload size={16} />
+            </button>
             <button className="btn btn-square btn-sm text-sm" onClick={() => setToCreate(true)}>
               <Icon icon="plus" size={16} />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
           </div>
 
           <div className="grow overflow-y-auto p-4 pt-4">
@@ -93,6 +156,7 @@ export function ConfigurationPage() {
                   onDelete={deleting.mutate}
                   onUpdate={setToUpdate}
                   onDuplicate={duplicate.mutate}
+                  onExport={exportConfig.mutate}
                 />
               ))}
             </div>

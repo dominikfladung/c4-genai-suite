@@ -1,5 +1,5 @@
 import { ActionIcon, Menu } from '@mantine/core';
-import { IconCopy, IconDots, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconCopy, IconDots, IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
 import { memo } from 'react';
 import { ConfigurationDto } from 'src/api';
 import { ConfirmDialog, TransientNavLink } from 'src/components';
@@ -17,10 +17,13 @@ interface ConfigurationProps {
   onUpdate: (configuration: ConfigurationDto) => void;
 
   onDuplicate: (configuration: ConfigurationDto) => void;
+
+  // Invoked when exporting.
+  onExport: (configuration: ConfigurationDto) => void;
 }
 
 export const Configuration = memo((props: ConfigurationProps) => {
-  const { configuration, onDelete, onUpdate, onDuplicate } = props;
+  const { configuration, onDelete, onUpdate, onDuplicate, onExport } = props;
 
   return (
     <li className="group flex items-center !px-0">
@@ -44,6 +47,9 @@ export const Configuration = memo((props: ConfigurationProps) => {
           </Menu.Item>
           <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onDuplicate(configuration)}>
             {texts.common.duplicate}
+          </Menu.Item>
+          <Menu.Item leftSection={<IconDownload size={14} />} onClick={() => onExport(configuration)}>
+            {texts.common.export}
           </Menu.Item>
           <ConfirmDialog
             title={texts.extensions.removeConfigurationConfirmTitle}

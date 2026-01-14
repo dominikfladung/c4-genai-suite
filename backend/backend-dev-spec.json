@@ -983,6 +983,68 @@
         "tags": ["extensions"]
       }
     },
+    "/api/configurations/{id}/export": {
+      "get": {
+        "description": "Export a configuration as JSON.",
+        "operationId": "exportConfiguration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the configuration to export.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportConfigurationDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["extensions"]
+      }
+    },
+    "/api/configurations/import": {
+      "post": {
+        "description": "Import a configuration from JSON.",
+        "operationId": "importConfiguration",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportConfigurationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["extensions"]
+      }
+    },
     "/api/extensions/test": {
       "post": {
         "description": "Tests an extension.",
@@ -3773,6 +3835,88 @@
           }
         },
         "required": ["extensions"]
+      },
+      "ExportedExtensionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the extension."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Indicates whether the extension is enabled."
+          },
+          "values": {
+            "type": "object",
+            "description": "The values.",
+            "additionalProperties": true
+          },
+          "configurableArguments": {
+            "description": "The configurable arguments.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtensionArgumentObjectSpecDto"
+              }
+            ]
+          }
+        },
+        "required": ["name", "enabled", "values"]
+      },
+      "ImportConfigurationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the configuration."
+          },
+          "description": {
+            "type": "string",
+            "description": "The description of the configuration."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Indicates whether the configuration is enabled."
+          },
+          "agentName": {
+            "type": "string",
+            "description": "The name of the agent."
+          },
+          "chatFooter": {
+            "type": "string",
+            "description": "The footer text to be shown below the chat."
+          },
+          "chatSuggestions": {
+            "description": "The suggestions to be shown for the chat.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatSuggestionDto"
+            }
+          },
+          "executorEndpoint": {
+            "type": "string",
+            "description": "The optional executor endpoint."
+          },
+          "executorHeaders": {
+            "type": "string",
+            "description": "The optional executor headers."
+          },
+          "userGroupIds": {
+            "description": "The allowed user groups.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extensions": {
+            "description": "The extensions configuration.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportedExtensionDto"
+            }
+          }
+        },
+        "required": ["name", "description", "enabled"]
       },
       "TestExtensionDto": {
         "type": "object",

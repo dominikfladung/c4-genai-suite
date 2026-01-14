@@ -23,6 +23,7 @@ import type {
   CreateExtensionDto,
   ExtensionDto,
   ExtensionsDto,
+  ImportConfigurationDto,
   TestExtensionDto,
   UpdateExtensionDto,
   UpsertConfigurationDto,
@@ -42,6 +43,8 @@ import {
     ExtensionDtoToJSON,
     ExtensionsDtoFromJSON,
     ExtensionsDtoToJSON,
+    ImportConfigurationDtoFromJSON,
+    ImportConfigurationDtoToJSON,
     TestExtensionDtoFromJSON,
     TestExtensionDtoToJSON,
     UpdateExtensionDtoFromJSON,
@@ -60,6 +63,10 @@ export interface DeleteExtensionRequest {
 }
 
 export interface DuplicateConfigurationRequest {
+    id: number;
+}
+
+export interface ExportConfigurationRequest {
     id: number;
 }
 
@@ -82,6 +89,10 @@ export interface GetConfigurationsRequest {
 
 export interface GetExtensionsRequest {
     id: number;
+}
+
+export interface ImportConfigurationRequest {
+    importConfigurationDto: ImportConfigurationDto;
 }
 
 export interface PostConfigurationRequest {
@@ -229,6 +240,41 @@ export class ExtensionsApi extends runtime.BaseAPI {
      */
     async duplicateConfiguration(id: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ConfigurationDto> {
         const response = await this.duplicateConfigurationRaw({ id: id }, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Export a configuration as JSON.
+     * 
+     */
+    async exportConfigurationRaw(requestParameters: ExportConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ImportConfigurationDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling exportConfiguration().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/api/configurations/{id}/export`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ImportConfigurationDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Export a configuration as JSON.
+     * 
+     */
+    async exportConfiguration(id: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ImportConfigurationDto> {
+        const response = await this.exportConfigurationRaw({ id: id }, initOverrides);
         return await response.value();
     }
 
@@ -408,6 +454,44 @@ export class ExtensionsApi extends runtime.BaseAPI {
      */
     async getExtensions(id: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ExtensionsDto> {
         const response = await this.getExtensionsRaw({ id: id }, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Import a configuration from JSON.
+     * 
+     */
+    async importConfigurationRaw(requestParameters: ImportConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ConfigurationDto>> {
+        if (requestParameters['importConfigurationDto'] == null) {
+            throw new runtime.RequiredError(
+                'importConfigurationDto',
+                'Required parameter "importConfigurationDto" was null or undefined when calling importConfiguration().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        const response = await this.request({
+            path: `/api/configurations/import`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ImportConfigurationDtoToJSON(requestParameters['importConfigurationDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ConfigurationDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Import a configuration from JSON.
+     * 
+     */
+    async importConfiguration(importConfigurationDto: ImportConfigurationDto, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ConfigurationDto> {
+        const response = await this.importConfigurationRaw({ importConfigurationDto: importConfigurationDto }, initOverrides);
         return await response.value();
     }
 
