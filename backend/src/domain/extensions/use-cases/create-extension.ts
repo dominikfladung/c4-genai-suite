@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtensionEntity, ExtensionRepository } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
+import { ConfigurationHistoryService } from '../services';
 import { ConfiguredExtension, ExtensionConfiguration, ExtensionObjectArgument } from '../interfaces';
 import { ExplorerService } from '../services';
 import { buildExtension, maskArgumentDefault, maskKeyValues, validateConfiguration } from './utils';
@@ -18,6 +19,7 @@ export class CreateExtension {
   constructor(
     public readonly configurationId: number,
     public readonly values: Values,
+    public readonly userId?: string,
   ) {}
 }
 
@@ -31,10 +33,11 @@ export class CreateExtensionHandler implements ICommandHandler<CreateExtension, 
     private readonly explorer: ExplorerService,
     @InjectRepository(ExtensionEntity)
     private readonly extensions: ExtensionRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: CreateExtension): Promise<CreateExtensionResponse> {
-    const { configurationId } = command;
+    const { configurationId, userId } = command;
     const { enabled, name, values, configurableArguments } = command.values;
 
     if (configurableArguments?.properties) {
@@ -63,6 +66,12 @@ export class CreateExtensionHandler implements ICommandHandler<CreateExtension, 
     const result = await buildExtension(entity, extension, true);
     maskKeyValues(result);
     result.id = entity.id;
+
+    // Save configuration snapshot after adding extension
+    if (userId) {
+      await this.historyService.saveSnapshot(configurationId, userId, 'update', `Extension ${name} added`);
+    }
+
     return new CreateExtensionResponse(result);
   }
 }

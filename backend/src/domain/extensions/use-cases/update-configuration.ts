@@ -10,6 +10,7 @@ import {
   UserGroupRepository,
 } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
+import { ConfigurationHistoryService } from '../services';
 import { ConfigurationModel } from '../interfaces';
 import { buildConfiguration } from './utils';
 
@@ -32,6 +33,7 @@ export class UpdateConfiguration {
   constructor(
     public readonly id: number,
     public readonly values: Values,
+    public readonly userId?: string,
   ) {}
 }
 
@@ -46,10 +48,11 @@ export class UpdateConfigurationHandler implements ICommandHandler<UpdateConfigu
     private readonly configurations: ConfigurationRepository,
     @InjectRepository(UserGroupEntity)
     private readonly userGroups: UserGroupRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: UpdateConfiguration): Promise<any> {
-    const { id, values } = command;
+    const { id, values, userId } = command;
     const {
       agentName,
       chatFooter,
@@ -71,6 +74,11 @@ export class UpdateConfigurationHandler implements ICommandHandler<UpdateConfigu
 
     if (!entity) {
       throw new NotFoundException();
+    }
+
+    // Save snapshot before updating
+    if (userId) {
+      await this.historyService.saveSnapshot(id, userId, 'update', 'Configuration updated');
     }
 
     if (userGroupIds) {

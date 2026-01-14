@@ -9,6 +9,7 @@ import {
   UserGroupRepository,
 } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
+import { ConfigurationHistoryService } from '../services';
 import { ConfigurationModel } from '../interfaces';
 import { buildConfiguration } from './utils';
 
@@ -28,7 +29,10 @@ type Values = Partial<
 >;
 
 export class CreateConfiguration {
-  constructor(public readonly values: Values) {}
+  constructor(
+    public readonly values: Values,
+    public readonly userId?: string,
+  ) {}
 }
 
 export class CreateConfigurationResponse {
@@ -42,10 +46,11 @@ export class CreateConfigurationHandler implements ICommandHandler<CreateConfigu
     private readonly configurations: ConfigurationRepository,
     @InjectRepository(UserGroupEntity)
     private readonly userGroups: UserGroupRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: CreateConfiguration): Promise<any> {
-    const { values } = command;
+    const { values, userId } = command;
     const {
       agentName,
       chatFooter,
@@ -79,6 +84,11 @@ export class CreateConfigurationHandler implements ICommandHandler<CreateConfigu
     // Use the save method otherwise we would not get previous values.
     const created = await this.configurations.save(entity);
     const result = await buildConfiguration(created);
+
+    // Save initial snapshot after creation
+    if (userId) {
+      await this.historyService.saveSnapshot(created.id, userId, 'create', 'Initial configuration created');
+    }
 
     return new CreateConfigurationResponse(result);
   }

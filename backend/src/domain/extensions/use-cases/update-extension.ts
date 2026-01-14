@@ -3,6 +3,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtensionEntity, ExtensionRepository } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
+import { ConfigurationHistoryService } from '../services';
 import { ConfiguredExtension, ExtensionConfiguration, ExtensionObjectArgument } from '../interfaces';
 import { ExplorerService } from '../services';
 import { buildExtension, maskArgumentDefault, maskKeyValues, unmaskExtensionValues, validateConfiguration } from './utils';
@@ -17,6 +18,8 @@ export class UpdateExtension {
   constructor(
     public readonly id: number,
     public readonly values: Values,
+    public readonly userId?: string,
+    public readonly configurationId?: number,
   ) {}
 }
 
@@ -30,10 +33,11 @@ export class UpdateExtensionHandler implements ICommandHandler<UpdateExtension, 
     private readonly explorer: ExplorerService,
     @InjectRepository(ExtensionEntity)
     private readonly extensions: ExtensionRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: UpdateExtension): Promise<UpdateExtensionResponse> {
-    const { id } = command;
+    const { id, userId, configurationId } = command;
     const { enabled, values, configurableArguments } = command.values;
 
     if (configurableArguments?.properties && values) {
@@ -52,6 +56,12 @@ export class UpdateExtensionHandler implements ICommandHandler<UpdateExtension, 
 
     if (!entity) {
       throw new NotFoundException();
+    }
+
+    // Save configuration snapshot before updating extension
+    if (userId && (configurationId || entity.configurationId)) {
+      const cfgId = configurationId || entity.configurationId;
+      await this.historyService.saveSnapshot(cfgId, userId, 'update', `Extension ${entity.name} updated`);
     }
 
     const unmaskedValues = assignDefined(entity.values ?? {}, unmaskExtensionValues(values ?? {}));

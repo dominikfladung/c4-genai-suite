@@ -4,9 +4,13 @@ import { DataSource, IsNull, Not } from 'typeorm';
 import { ConfigurationEntity, ConfigurationStatus, ConversationEntity } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
 import { I18nService } from 'src/localization/i18n.service';
+import { ConfigurationHistoryService } from '../services';
 
 export class DeleteConfiguration {
-  constructor(public readonly id: number) {}
+  constructor(
+    public readonly id: number,
+    public readonly userId?: string,
+  ) {}
 }
 
 @CommandHandler(DeleteConfiguration)
@@ -14,15 +18,21 @@ export class DeleteConfigurationHandler implements ICommandHandler<DeleteConfigu
   constructor(
     private dataSource: DataSource,
     private readonly i18n: I18nService,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: DeleteConfiguration): Promise<any> {
-    const { id } = command;
+    const { id, userId } = command;
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
     await queryRunner.startTransaction();
     try {
+      // Save snapshot before deleting
+      if (userId) {
+        await this.historyService.saveSnapshot(id, userId, 'delete', 'Configuration deleted');
+      }
+
       // First, we try to actually delete the assistant. This will work if no messages for this assistant exist.
       // The empty conversation must be deleted, if it references the assistant.
       await queryRunner.manager.delete(ConversationEntity, { configurationId: id, llm: IsNull(), name: IsNull() });

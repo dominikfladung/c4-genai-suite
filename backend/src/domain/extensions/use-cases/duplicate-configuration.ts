@@ -10,11 +10,15 @@ import {
   ExtensionEntity,
   ExtensionRepository,
 } from '../../database';
+import { ConfigurationHistoryService } from '../services';
 import { ConfigurationModel } from '../interfaces';
 import { buildConfiguration } from './utils';
 
 export class DuplicateConfiguration {
-  constructor(public readonly id: number) {}
+  constructor(
+    public readonly id: number,
+    public readonly userId?: string,
+  ) {}
 }
 
 export class DuplicateConfigurationResponse {
@@ -28,10 +32,11 @@ export class DuplicateConfigurationHandler implements ICommandHandler<DuplicateC
     private readonly configurations: ConfigurationRepository,
     @InjectRepository(ExtensionEntity)
     private readonly extensions: ExtensionRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: DuplicateConfiguration): Promise<any> {
-    const { id } = command;
+    const { id, userId } = command;
     const configuration = await this.configurations.findOne({
       where: { id, status: Not(ConfigurationStatus.DELETED) },
       relations: {
@@ -77,6 +82,11 @@ export class DuplicateConfigurationHandler implements ICommandHandler<DuplicateC
 
     const created = await this.configurations.save(entity);
     const result = await buildConfiguration(created);
+
+    // Save snapshot for duplicated configuration
+    if (userId) {
+      await this.historyService.saveSnapshot(created.id, userId, 'duplicate', `Duplicated from configuration ${id}`);
+    }
 
     return new DuplicateConfigurationResponse(result);
   }
