@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -13,6 +13,8 @@ import {
   DeleteConfiguration,
   DeleteExtension,
   DuplicateConfiguration,
+  ExportConfiguration,
+  ExportConfigurationResponse,
   GetBucketAvailability,
   GetBucketAvailabilityResponse,
   GetConfiguration,
@@ -21,6 +23,8 @@ import {
   GetConfigurationsResponse,
   GetExtensions,
   GetExtensionsResponse,
+  ImportConfiguration,
+  ImportConfigurationResponse,
   UpdateConfiguration,
   UpdateConfigurationResponse,
   UpdateExtension,
@@ -41,6 +45,7 @@ import {
   CreateExtensionDto,
   ExtensionDto,
   ExtensionsDto,
+  ImportConfigurationDto,
   UpdateExtensionDto,
   UpsertConfigurationDto,
 } from './dtos';
@@ -293,6 +298,36 @@ export class ConfigurationsController {
 
     const result: DuplicateConfigurationResponse = await this.commandBus.execute(command);
 
+    return ConfigurationDto.fromDomain(result.configuration);
+  }
+
+  @Get(':id/export')
+  @ApiOperation({ operationId: 'exportConfiguration', description: 'Export a configuration as JSON.' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the configuration to export.',
+    required: true,
+    type: Number,
+  })
+  @ApiOkResponse({ type: ImportConfigurationDto })
+  @Role(BUILTIN_USER_GROUP_ADMIN)
+  @UseGuards(RoleGuard)
+  @Header('Content-Type', 'application/json')
+  @Header('Content-Disposition', 'attachment; filename="configuration.json"')
+  async exportConfiguration(@Param('id') id: number) {
+    const query = new ExportConfiguration(id);
+    const result: ExportConfigurationResponse = await this.queryBus.execute(query);
+    return result.data;
+  }
+
+  @Post('/import')
+  @ApiOperation({ operationId: 'importConfiguration', description: 'Import a configuration from JSON.' })
+  @ApiOkResponse({ type: ConfigurationDto })
+  @Role(BUILTIN_USER_GROUP_ADMIN)
+  @UseGuards(RoleGuard)
+  async importConfiguration(@Body() body: ImportConfigurationDto) {
+    const command = new ImportConfiguration(body);
+    const result: ImportConfigurationResponse = await this.commandBus.execute(command);
     return ConfigurationDto.fromDomain(result.configuration);
   }
 }

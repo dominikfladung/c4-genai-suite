@@ -23,4 +23,8 @@ export {
   DuplicateConfiguration,
   GetBucketAvailability,
   GetBucketAvailabilityResponse,
+  ExportConfiguration,
+  ExportConfigurationResponse,
+  ImportConfiguration,
+  ImportConfigurationResponse,
 } from './use-cases';
