@@ -53,11 +53,13 @@ export class ConfigurationHistoryService {
         const maskedValues = { ...ext.values };
         const extension = this.explorerService.getExtension(ext.name);
         if (extension) {
-          // Create a temporary configured extension to use maskKeyValues
-          const tempConfigured = {
+          // Create a properly typed object for maskKeyValues
+          const tempConfigured: { spec: typeof extension.spec; values: Record<string, any> } = {
             spec: extension.spec,
             values: maskedValues,
           };
+          // Note: maskKeyValues expects ConfiguredExtension but we only need spec and values
+          // This is safe as maskKeyValues only accesses these properties
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           maskKeyValues(tempConfigured as any);
         }
@@ -126,14 +128,14 @@ export class ConfigurationHistoryService {
     const historyEntity = await this.getVersion(configurationId, version);
     const snapshot = historyEntity.snapshot;
 
+    // First, save the current state as a snapshot before restoring (outside transaction)
+    await this.saveSnapshot(configurationId, userId, 'restore', `Restoring to version ${version}`);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // First, save the current state as a snapshot before restoring
-      await this.saveSnapshot(configurationId, userId, 'restore', `Restoring to version ${version}`);
-
       const configuration = await queryRunner.manager.findOne(ConfigurationEntity, {
         where: { id: configurationId },
         relations: ['extensions', 'userGroups'],

@@ -429,8 +429,9 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: [ConfigurationHistoryDto] })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async getRecentChanges(@Query('limit', ParseIntPipe) limit: number = 50): Promise<ConfigurationHistoryDto[]> {
-    const history = await this.historyService.getRecentChanges(limit);
+  async getRecentChanges(@Query('limit') limit?: string): Promise<ConfigurationHistoryDto[]> {
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    const history = await this.historyService.getRecentChanges(limitNum);
     return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
   }
 }

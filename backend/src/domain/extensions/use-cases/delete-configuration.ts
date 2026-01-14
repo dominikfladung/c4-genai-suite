@@ -23,16 +23,23 @@ export class DeleteConfigurationHandler implements ICommandHandler<DeleteConfigu
 
   async execute(command: DeleteConfiguration): Promise<any> {
     const { id, userId } = command;
+
+    // Save snapshot before starting the deletion transaction
+    // This ensures we capture the current state before any changes
+    if (userId) {
+      try {
+        await this.historyService.saveSnapshot(id, userId, 'delete', 'Configuration deleted');
+      } catch (snapshotError) {
+        // Log error but don't fail the delete operation
+        console.error('Failed to save deletion snapshot:', snapshotError);
+      }
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
     await queryRunner.startTransaction();
     try {
-      // Save snapshot before deleting
-      if (userId) {
-        await this.historyService.saveSnapshot(id, userId, 'delete', 'Configuration deleted');
-      }
-
       // First, we try to actually delete the assistant. This will work if no messages for this assistant exist.
       // The empty conversation must be deleted, if it references the assistant.
       await queryRunner.manager.delete(ConversationEntity, { configurationId: id, llm: IsNull(), name: IsNull() });
