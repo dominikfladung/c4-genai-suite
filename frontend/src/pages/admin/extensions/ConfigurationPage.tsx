@@ -70,7 +70,9 @@ export function ConfigurationPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${configuration.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_config.json`;
+      // Sanitize filename: keep letters, numbers, hyphens, underscores, and spaces
+      const sanitizedName = configuration.name.replace(/[^a-zA-Z0-9\-_ ]/g, '_').toLowerCase();
+      link.download = `${sanitizedName}_config.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -87,8 +89,12 @@ export function ConfigurationPage() {
   const importConfig = useMutation({
     mutationFn: async (file: File) => {
       const text = await file.text();
-      const data = JSON.parse(text);
-      return api.extensions.importConfiguration(data);
+      try {
+        const data = JSON.parse(text);
+        return api.extensions.importConfiguration(data);
+      } catch (error) {
+        throw new Error('Invalid JSON file. Please upload a valid configuration file.');
+      }
     },
     onSuccess: (configuration) => {
       setConfiguration(configuration);

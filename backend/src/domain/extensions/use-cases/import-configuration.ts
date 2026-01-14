@@ -76,9 +76,9 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
           throw new BadRequestException(`Extension '${extData.name}' is not available in this system`);
         }
 
-        // Validate extension values
+        // Unmask and validate extension values
+        const unmaskedValues = unmaskExtensionValues({ ...extData.values });
         try {
-          const unmaskedValues = unmaskExtensionValues({ ...extData.values });
           validateConfiguration(unmaskedValues, extensionDefinition.spec);
         } catch (err) {
           const error = err as Error;
@@ -90,7 +90,7 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
         assignDefined(extensionEntity, {
           name: extData.name,
           enabled: extData.enabled ?? false,
-          values: unmaskExtensionValues({ ...extData.values }),
+          values: unmaskedValues,
           configurableArguments: extData.configurableArguments,
           externalId: '', // Will be set by the system
         });

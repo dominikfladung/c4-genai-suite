@@ -55,7 +55,9 @@ export class ExportConfigurationHandler implements IQueryHandler<ExportConfigura
     }
 
     // Build configuration with extensions
-    const configuration = await buildConfiguration(entity, this.explorer, true, false);
+    const withExtensions = true;
+    const onlyEnabledExtensions = false;
+    const configuration = await buildConfiguration(entity, this.explorer, withExtensions, onlyEnabledExtensions);
 
     // Mask sensitive values
     if (configuration.extensions) {
