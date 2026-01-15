@@ -3,8 +3,9 @@ import { IconRestore } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import { ConfigurationHistoryDto, useApi } from 'src/api';
-import { Modal } from 'src/components';
+import { ConfirmDialog, Modal } from 'src/components';
 import { texts } from 'src/texts';
 
 interface ConfigurationHistoryModalProps {
@@ -32,13 +33,15 @@ export function ConfigurationHistoryModal(props: ConfigurationHistoryModalProps)
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [`configuration:${configurationId}:history`] });
       void queryClient.invalidateQueries({ queryKey: ['configurations'] });
+      toast.success('Configuration restored successfully');
+    },
+    onError: () => {
+      toast.error('Failed to restore configuration. Please try again.');
     },
   });
 
   const handleRestore = (version: number) => {
-    if (confirm(`Are you sure you want to restore to version ${version}?`)) {
-      restoreMutation.mutate({ version });
-    }
+    restoreMutation.mutate({ version });
   };
 
   // Pagination logic
@@ -117,14 +120,23 @@ export function ConfigurationHistoryModal(props: ConfigurationHistoryModalProps)
                     </Table.Td>
                     <Table.Td>
                       <div className="flex gap-2">
-                        <ActionIcon
-                          size="sm"
-                          variant="subtle"
-                          onClick={() => handleRestore(item.version)}
-                          title="Restore this version"
+                        <ConfirmDialog
+                          title="Restore Configuration"
+                          text={`Are you sure you want to restore to version ${item.version}?`}
+                          onPerform={() => handleRestore(item.version)}
                         >
-                          <IconRestore size={16} />
-                        </ActionIcon>
+                          {({ onClick }) => (
+                            <ActionIcon
+                              size="sm"
+                              variant="subtle"
+                              onClick={onClick}
+                              title="Restore this version"
+                              disabled={restoreMutation.isPending}
+                            >
+                              <IconRestore size={16} />
+                            </ActionIcon>
+                          )}
+                        </ConfirmDialog>
                       </div>
                     </Table.Td>
                   </Table.Tr>

@@ -69,7 +69,7 @@ export class CreateExtensionHandler implements ICommandHandler<CreateExtension, 
 
     // Save configuration snapshot after adding extension
     if (userId) {
-      await this.historyService.saveSnapshot(configurationId, userId, 'update', `Extension ${name} added`);
+      await this.historyService.saveSnapshot(configurationId, userId, 'add_extension', `Extension ${name} added`);
     }
 
     return new CreateExtensionResponse(result);

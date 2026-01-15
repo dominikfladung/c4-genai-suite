@@ -33,7 +33,7 @@ export class DeleteExtensionHandler implements ICommandHandler<DeleteExtension, 
     // Save configuration snapshot before deleting extension
     if (userId && (configurationId || extension.configurationId)) {
       const cfgId = configurationId || extension.configurationId;
-      await this.historyService.saveSnapshot(cfgId, userId, 'update', `Extension ${extension.name} deleted`);
+      await this.historyService.saveSnapshot(cfgId, userId, 'delete', `Extension ${extension.name} deleted`);
     }
 
     const result = await this.extensions.delete({ id: command.id });

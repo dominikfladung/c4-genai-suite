@@ -58,7 +58,10 @@ export class UpdateExtensionHandler implements ICommandHandler<UpdateExtension, 
       throw new NotFoundException();
     }
 
-    // Save configuration snapshot before updating extension
+    // Save configuration snapshot before updating extension.
+    // NOTE: This snapshot is intentionally saved outside of the database transaction
+    // to avoid potential deadlocks. See UpdateConfigurationHandler for more details
+    // about this design decision and its implications for data consistency.
     if (userId && (configurationId || entity.configurationId)) {
       const cfgId = configurationId || entity.configurationId;
       await this.historyService.saveSnapshot(cfgId, userId, 'update', `Extension ${entity.name} updated`);

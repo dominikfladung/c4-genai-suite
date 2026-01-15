@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import {
   ConfigurationEntity,
   ConfigurationHistoryEntity,
@@ -8,6 +8,7 @@ import {
   ConfigurationStatus,
   ExtensionEntity,
   ExtensionSnapshot,
+  UserGroupEntity,
 } from 'src/domain/database';
 import { ConfigurationHistoryRepository } from 'src/domain/database/repositories/configuration-history.repository';
 import { ConfiguredExtension } from '../interfaces';
@@ -23,6 +24,8 @@ export class ConfigurationHistoryService {
     private readonly historyRepository: ConfigurationHistoryRepository,
     @InjectRepository(ConfigurationEntity)
     private readonly configurationRepository: Repository<ConfigurationEntity>,
+    @InjectRepository(UserGroupEntity)
+    private readonly userGroupRepository: Repository<UserGroupEntity>,
     private readonly dataSource: DataSource,
     private readonly explorerService: ExplorerService,
   ) {}
@@ -146,6 +149,15 @@ export class ConfigurationHistoryService {
       configuration.chatSuggestions = snapshot.chatSuggestions;
       configuration.executorEndpoint = snapshot.executorEndpoint;
       configuration.executorHeaders = snapshot.executorHeaders;
+
+      // Restore user groups from snapshot
+      if (snapshot.userGroupIds && snapshot.userGroupIds.length > 0) {
+        configuration.userGroups = await queryRunner.manager.findBy(UserGroupEntity, {
+          id: In(snapshot.userGroupIds),
+        });
+      } else {
+        configuration.userGroups = [];
+      }
 
       // Map snapshot status back to enum
       const statusMap = {

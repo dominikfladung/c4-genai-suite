@@ -12,20 +12,32 @@ export class ConfigurationHistoryRepository extends Repository<ConfigurationHist
     action: string,
     comment?: string,
   ): Promise<ConfigurationHistoryEntity> {
-    // Get the next version number for this configuration
-    const versionCount = await this.getVersionCount(configurationId);
-    const version = versionCount + 1;
+    // Use a transaction with pessimistic locking to prevent race conditions
+    // when multiple operations try to create snapshots for the same configuration
+    return this.manager.transaction(async (manager) => {
+      const historyRepo = manager.getRepository(ConfigurationHistoryEntity);
 
-    const entity = this.create({
-      configurationId,
-      version,
-      action,
-      changedBy: userId,
-      snapshot,
-      changeComment: comment,
+      // Get the next version number with pessimistic write lock to prevent race conditions
+      const result = await historyRepo
+        .createQueryBuilder('history')
+        .select('COALESCE(MAX(history.version), 0)', 'max')
+        .where('history.configurationId = :configurationId', { configurationId })
+        .setLock('pessimistic_write')
+        .getRawOne<{ max: string }>();
+
+      const version = Number(result?.max || 0) + 1;
+
+      const entity = historyRepo.create({
+        configurationId,
+        version,
+        action,
+        changedBy: userId,
+        snapshot,
+        changeComment: comment,
+      });
+
+      return historyRepo.save(entity);
     });
-
-    return this.save(entity);
   }
 
   /**

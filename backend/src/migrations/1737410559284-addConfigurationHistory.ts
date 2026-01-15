@@ -6,7 +6,7 @@ export class AddConfigurationHistory1737410559284 implements MigrationInterface 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create configuration_history table
     await queryRunner.query(`
-      CREATE TABLE "configuration_history" (
+      CREATE TABLE "company_chat"."configuration_history" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "configurationId" integer NOT NULL,
         "version" integer NOT NULL,
@@ -22,29 +22,33 @@ export class AddConfigurationHistory1737410559284 implements MigrationInterface 
 
     // Create indexes
     await queryRunner.query(
-      `CREATE INDEX "IDX_configuration_history_configurationId" ON "configuration_history" ("configurationId")`,
+      `CREATE INDEX "IDX_configuration_history_configurationId" ON "company_chat"."configuration_history" ("configurationId")`,
     );
-    await queryRunner.query(`CREATE INDEX "IDX_configuration_history_changedBy" ON "configuration_history" ("changedBy")`);
-    await queryRunner.query(`CREATE INDEX "IDX_configuration_history_createdAt" ON "configuration_history" ("createdAt")`);
     await queryRunner.query(
-      `CREATE INDEX "IDX_configuration_history_configurationId_version" ON "configuration_history" ("configurationId", "version")`,
+      `CREATE INDEX "IDX_configuration_history_changedBy" ON "company_chat"."configuration_history" ("changedBy")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_configuration_history_createdAt" ON "company_chat"."configuration_history" ("createdAt")`,
+    );
+    await queryRunner.query(
+      `CREATE INDEX "IDX_configuration_history_configurationId_version" ON "company_chat"."configuration_history" ("configurationId", "version")`,
     );
 
     // Add foreign key constraints
     await queryRunner.query(`
-      ALTER TABLE "configuration_history"
+      ALTER TABLE "company_chat"."configuration_history"
       ADD CONSTRAINT "FK_configuration_history_configurationId"
       FOREIGN KEY ("configurationId")
-      REFERENCES "configurations"("id")
+      REFERENCES "company_chat"."configurations"("id")
       ON DELETE CASCADE
       ON UPDATE NO ACTION
     `);
 
     await queryRunner.query(`
-      ALTER TABLE "configuration_history"
+      ALTER TABLE "company_chat"."configuration_history"
       ADD CONSTRAINT "FK_configuration_history_changedBy"
       FOREIGN KEY ("changedBy")
-      REFERENCES "users"("id")
+      REFERENCES "company_chat"."users"("id")
       ON DELETE SET NULL
       ON UPDATE NO ACTION
     `);
@@ -52,16 +56,20 @@ export class AddConfigurationHistory1737410559284 implements MigrationInterface 
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop foreign key constraints
-    await queryRunner.query(`ALTER TABLE "configuration_history" DROP CONSTRAINT "FK_configuration_history_changedBy"`);
-    await queryRunner.query(`ALTER TABLE "configuration_history" DROP CONSTRAINT "FK_configuration_history_configurationId"`);
+    await queryRunner.query(
+      `ALTER TABLE "company_chat"."configuration_history" DROP CONSTRAINT IF EXISTS "FK_configuration_history_changedBy"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "company_chat"."configuration_history" DROP CONSTRAINT IF EXISTS "FK_configuration_history_configurationId"`,
+    );
 
     // Drop indexes
-    await queryRunner.query(`DROP INDEX "IDX_configuration_history_configurationId_version"`);
-    await queryRunner.query(`DROP INDEX "IDX_configuration_history_createdAt"`);
-    await queryRunner.query(`DROP INDEX "IDX_configuration_history_changedBy"`);
-    await queryRunner.query(`DROP INDEX "IDX_configuration_history_configurationId"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "company_chat"."IDX_configuration_history_configurationId_version"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "company_chat"."IDX_configuration_history_createdAt"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "company_chat"."IDX_configuration_history_changedBy"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "company_chat"."IDX_configuration_history_configurationId"`);
 
     // Drop table
-    await queryRunner.query(`DROP TABLE "configuration_history"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "company_chat"."configuration_history"`);
   }
 }
