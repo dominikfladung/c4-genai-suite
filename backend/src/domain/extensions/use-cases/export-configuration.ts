@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { Logger, NotFoundException } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not } from 'typeorm';
@@ -11,6 +11,8 @@ export class ExportConfiguration {
 }
 
 export interface ExportedConfiguration {
+  version?: string;
+  exportedAt?: string;
   name: string;
   description: string;
   enabled: boolean;
@@ -34,6 +36,8 @@ export class ExportConfigurationResponse {
 
 @QueryHandler(ExportConfiguration)
 export class ExportConfigurationHandler implements IQueryHandler<ExportConfiguration, ExportConfigurationResponse> {
+  private readonly logger = new Logger(ExportConfigurationHandler.name);
+
   constructor(
     @InjectRepository(ConfigurationEntity)
     private readonly configurations: ConfigurationRepository,
@@ -43,46 +47,57 @@ export class ExportConfigurationHandler implements IQueryHandler<ExportConfigura
   async execute(request: ExportConfiguration): Promise<ExportConfigurationResponse> {
     const { id } = request;
 
-    const entity = await this.configurations.findOne({
-      where: { id, status: Not(ConfigurationStatus.DELETED) },
-      relations: {
-        extensions: true,
-      },
-    });
+    try {
+      const entity = await this.configurations.findOne({
+        where: { id, status: Not(ConfigurationStatus.DELETED) },
+        relations: {
+          extensions: true,
+        },
+      });
 
-    if (!entity) {
-      throw new NotFoundException(`Configuration with id ${id} was not found`);
+      if (!entity) {
+        throw new NotFoundException(`Configuration with id ${id} was not found`);
+      }
+
+      // Build configuration with extensions
+      const withExtensions = true;
+      const onlyEnabledExtensions = false;
+      const configuration = await buildConfiguration(entity, this.explorer, withExtensions, onlyEnabledExtensions);
+
+      // Mask sensitive values
+      if (configuration.extensions) {
+        configuration.extensions.forEach((ext) => maskKeyValues(ext));
+      }
+
+      // Get version from environment variable
+      const version = process.env.VERSION || '0.0.0';
+
+      // Build export structure
+      const exportData: ExportedConfiguration = {
+        version,
+        exportedAt: new Date().toISOString(),
+        name: configuration.name,
+        description: configuration.description,
+        enabled: configuration.enabled,
+        agentName: configuration.agentName,
+        chatFooter: configuration.chatFooter,
+        chatSuggestions: configuration.chatSuggestions,
+        executorEndpoint: configuration.executorEndpoint,
+        executorHeaders: configuration.executorHeaders,
+        userGroupIds: configuration.userGroupIds,
+        extensions: configuration.extensions?.map((ext) => ({
+          name: ext.name,
+          enabled: ext.enabled,
+          values: ext.values,
+          configurableArguments: ext.configurableArguments,
+        })),
+      };
+
+      return new ExportConfigurationResponse(exportData);
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to export configuration ${id}: ${error.message}`, error.stack);
+      throw error;
     }
-
-    // Build configuration with extensions
-    const withExtensions = true;
-    const onlyEnabledExtensions = false;
-    const configuration = await buildConfiguration(entity, this.explorer, withExtensions, onlyEnabledExtensions);
-
-    // Mask sensitive values
-    if (configuration.extensions) {
-      configuration.extensions.forEach((ext) => maskKeyValues(ext));
-    }
-
-    // Build export structure
-    const exportData: ExportedConfiguration = {
-      name: configuration.name,
-      description: configuration.description,
-      enabled: configuration.enabled,
-      agentName: configuration.agentName,
-      chatFooter: configuration.chatFooter,
-      chatSuggestions: configuration.chatSuggestions,
-      executorEndpoint: configuration.executorEndpoint,
-      executorHeaders: configuration.executorHeaders,
-      userGroupIds: configuration.userGroupIds,
-      extensions: configuration.extensions?.map((ext) => ({
-        name: ext.name,
-        enabled: ext.enabled,
-        values: ext.values,
-        configurableArguments: ext.configurableArguments,
-      })),
-    };
-
-    return new ExportConfigurationResponse(exportData);
   }
 }

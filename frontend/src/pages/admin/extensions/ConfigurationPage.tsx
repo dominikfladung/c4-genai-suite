@@ -138,19 +138,13 @@ export function ConfigurationPage() {
               {texts.extensions.configurations}
             </h3>
 
-            <button className="btn btn-square btn-sm text-sm mr-2" onClick={handleImport} title={texts.common.import}>
+            <button className="btn btn-square btn-sm mr-2 text-sm" onClick={handleImport} title={texts.common.import}>
               <IconUpload size={16} />
             </button>
             <button className="btn btn-square btn-sm text-sm" onClick={() => setToCreate(true)}>
               <Icon icon="plus" size={16} />
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
           </div>
 
           <div className="grow overflow-y-auto p-4 pt-4">

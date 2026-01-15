@@ -906,6 +906,22 @@ export class ExportedExtensionDto {
 @ApiExtraModels(ChatSuggestionDto, ExportedExtensionDto)
 export class ImportConfigurationDto {
   @ApiProperty({
+    description: 'The version of the application that exported this configuration.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  version?: string;
+
+  @ApiProperty({
+    description: 'The timestamp when this configuration was exported.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  exportedAt?: string;
+
+  @ApiProperty({
     description: 'The name of the configuration.',
     required: true,
   })

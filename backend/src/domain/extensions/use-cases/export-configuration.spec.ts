@@ -66,5 +66,15 @@ describe('ExportConfigurationHandler', () => {
     expect(result.data.enabled).toBe(true);
     expect(result.data.agentName).toBe('Test Agent');
     expect(result.data.userGroupIds).toEqual(['group1']);
+    expect(result.data.version).toBeDefined();
+    expect(result.data.exportedAt).toBeDefined();
+  });
+
+  it('should log error when export fails', async () => {
+    const loggerErrorSpy = jest.spyOn(handler['logger'], 'error');
+    jest.spyOn(configurationRepository, 'findOne').mockRejectedValue(new Error('Database error'));
+
+    await expect(handler.execute({ id: 1 })).rejects.toThrow('Database error');
+    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to export configuration'), expect.any(String));
   });
 });

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In } from 'typeorm';
@@ -14,7 +14,7 @@ import {
 import { assignDefined } from 'src/lib';
 import { ConfigurationModel } from '../interfaces';
 import { ExplorerService } from '../services';
-import { buildConfiguration, unmaskExtensionValues, validateConfiguration } from './utils';
+import { buildConfiguration, validateConfiguration } from './utils';
 import { ExportedConfiguration } from './export-configuration';
 
 export class ImportConfiguration {
@@ -27,6 +27,8 @@ export class ImportConfigurationResponse {
 
 @CommandHandler(ImportConfiguration)
 export class ImportConfigurationHandler implements ICommandHandler<ImportConfiguration, ImportConfigurationResponse> {
+  private readonly logger = new Logger(ImportConfigurationHandler.name);
+
   constructor(
     @InjectRepository(ConfigurationEntity)
     private readonly configurations: ConfigurationRepository,
@@ -40,9 +42,12 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
   async execute(command: ImportConfiguration): Promise<ImportConfigurationResponse> {
     const { data } = command;
 
-    // Validate required fields
-    if (!data.name) {
-      throw new BadRequestException('Configuration name is required');
+    // Check version compatibility
+    const currentVersion = process.env.VERSION || '0.0.0';
+    if (data.version && data.version !== currentVersion) {
+      this.logger.warn(
+        `Importing configuration with different version. Current: ${currentVersion}, Import: ${data.version}. Attempting import anyway.`,
+      );
     }
 
     // Create configuration entity
@@ -76,10 +81,9 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
           throw new BadRequestException(`Extension '${extData.name}' is not available in this system`);
         }
 
-        // Unmask and validate extension values
-        const unmaskedValues = unmaskExtensionValues({ ...extData.values });
+        // Validate extension values
         try {
-          validateConfiguration(unmaskedValues, extensionDefinition.spec);
+          validateConfiguration(extData.values, extensionDefinition.spec);
         } catch (err) {
           const error = err as Error;
           throw new BadRequestException(`Invalid configuration for extension '${extData.name}': ${error.message}`);
@@ -90,7 +94,7 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
         assignDefined(extensionEntity, {
           name: extData.name,
           enabled: extData.enabled ?? false,
-          values: unmaskedValues,
+          values: extData.values,
           configurableArguments: extData.configurableArguments,
           externalId: '', // Will be set by the system
         });

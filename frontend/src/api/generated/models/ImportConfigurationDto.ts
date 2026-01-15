@@ -34,6 +34,18 @@ import {
  */
 export interface ImportConfigurationDto {
     /**
+     * The version of the application that exported this configuration.
+     * @type {string}
+     * @memberof ImportConfigurationDto
+     */
+    version?: string;
+    /**
+     * The timestamp when this configuration was exported.
+     * @type {string}
+     * @memberof ImportConfigurationDto
+     */
+    exportedAt?: string;
+    /**
      * The name of the configuration.
      * @type {string}
      * @memberof ImportConfigurationDto
@@ -115,6 +127,8 @@ export function ImportConfigurationDtoFromJSONTyped(json: any, ignoreDiscriminat
     }
     return {
         
+        'version': json['version'] == null ? undefined : json['version'],
+        'exportedAt': json['exportedAt'] == null ? undefined : json['exportedAt'],
         'name': json['name'],
         'description': json['description'],
         'enabled': json['enabled'],
@@ -134,6 +148,8 @@ export function ImportConfigurationDtoToJSON(value?: ImportConfigurationDto | nu
     }
     return {
         
+        'version': value['version'],
+        'exportedAt': value['exportedAt'],
         'name': value['name'],
         'description': value['description'],
         'enabled': value['enabled'],
