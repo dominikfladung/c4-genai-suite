@@ -70,9 +70,10 @@ export function ConfigurationPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      // Sanitize filename: keep letters, numbers, hyphens, underscores, and spaces
-      const sanitizedName = configuration.name.replace(/[^a-zA-Z0-9\-_ ]/g, '_').toLowerCase();
-      link.download = `${sanitizedName}_config.json`;
+      // Sanitize filename conservatively: replace characters invalid in common filesystems
+      const sanitizedBaseName = configuration.name.trim().replace(/[\/\\?%*:|"<>]/g, '_') || 'configuration';
+      const uniqueSuffix = configuration.id ?? Date.now().toString();
+      link.download = `${sanitizedBaseName}_${uniqueSuffix}_config.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -88,12 +89,26 @@ export function ConfigurationPage() {
 
   const importConfig = useMutation({
     mutationFn: async (file: File) => {
+      // Validate file type
+      if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+        throw new Error('Please upload a JSON file (.json)');
+      }
+
+      // Validate file size (10MB limit)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error('File size exceeds 10MB limit');
+      }
+
       const text = await file.text();
       try {
         const data = JSON.parse(text);
         return api.extensions.importConfiguration(data);
-      } catch (error) {
-        throw new Error('Invalid JSON file. Please upload a valid configuration file.');
+      } catch (err) {
+        const error = err as Error;
+        const baseMessage = 'Invalid JSON file. Please upload a valid configuration file.';
+        const detailedMessage = error.message ? `${baseMessage} Details: ${error.message}` : baseMessage;
+        throw new Error(detailedMessage);
       }
     },
     onSuccess: (configuration) => {
@@ -138,13 +153,25 @@ export function ConfigurationPage() {
               {texts.extensions.configurations}
             </h3>
 
-            <button className="btn btn-square btn-sm mr-2 text-sm" onClick={handleImport} title={texts.common.import}>
+            <button
+              className="btn btn-square btn-sm mr-2 text-sm"
+              onClick={handleImport}
+              title={texts.common.import}
+              aria-label={texts.common.import}
+            >
               <IconUpload size={16} />
             </button>
             <button className="btn btn-square btn-sm text-sm" onClick={() => setToCreate(true)}>
               <Icon icon="plus" size={16} />
             </button>
-            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+              aria-label={texts.common.import}
+            />
           </div>
 
           <div className="grow overflow-y-auto p-4 pt-4">

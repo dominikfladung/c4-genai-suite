@@ -55,7 +55,15 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
 
     // Handle user groups
     if (data.userGroupIds && data.userGroupIds.length > 0) {
-      entity.userGroups = await this.userGroups.findBy({ id: In(data.userGroupIds) });
+      const userGroups = await this.userGroups.findBy({ id: In(data.userGroupIds) });
+      if (userGroups.length === 0) {
+        this.logger.warn(
+          `Cannot import configuration '${data.name}': none of the specified user groups exist in this system. ` +
+            `Requested userGroupIds: ${data.userGroupIds.join(', ')}`,
+        );
+        throw new BadRequestException('Cannot import configuration: none of the specified user groups exist in this system');
+      }
+      entity.userGroups = userGroups;
     }
 
     // Assign configuration fields
@@ -105,7 +113,7 @@ export class ImportConfigurationHandler implements ICommandHandler<ImportConfigu
 
     // Save configuration
     const created = await this.configurations.save(entity);
-    const result = await buildConfiguration(created);
+    const result = await buildConfiguration(created, this.explorer);
 
     return new ImportConfigurationResponse(result);
   }

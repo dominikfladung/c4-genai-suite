@@ -77,4 +77,52 @@ describe('ExportConfigurationHandler', () => {
     await expect(handler.execute({ id: 1 })).rejects.toThrow('Database error');
     expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to export configuration'), expect.any(String));
   });
+
+  it('should mask password fields in extensions during export', async () => {
+    const mockConfig: Partial<ConfigurationEntity> = {
+      id: 1,
+      name: 'Test Config',
+      description: 'Test Description',
+      status: ConfigurationStatus.ENABLED,
+      extensions: [
+        {
+          id: 1,
+          name: 'test-extension',
+          enabled: true,
+          values: { apiKey: 'secret123', model: 'gpt-4' },
+          configurableArguments: {},
+        } as any,
+      ],
+    };
+
+    const mockExtensionSpec = {
+      name: 'test-extension',
+      title: 'Test Extension',
+      description: 'Test',
+      type: 'tool' as const,
+      arguments: {
+        apiKey: {
+          type: 'string' as const,
+          title: 'API Key',
+          format: 'password',
+        },
+        model: {
+          type: 'string' as const,
+          title: 'Model',
+        },
+      },
+    };
+
+    jest.spyOn(configurationRepository, 'findOne').mockResolvedValue(mockConfig as ConfigurationEntity);
+    jest.spyOn(explorerService, 'getExtension').mockReturnValue({ spec: mockExtensionSpec } as any);
+
+    const result = await handler.execute({ id: 1 });
+
+    expect(result.data.extensions).toBeDefined();
+    expect(result.data.extensions!.length).toBe(1);
+    // Password field should be masked
+    expect(result.data.extensions![0].values.apiKey).toBe('********************');
+    // Non-password field should remain unchanged
+    expect(result.data.extensions![0].values.model).toBe('gpt-4');
+  });
 });

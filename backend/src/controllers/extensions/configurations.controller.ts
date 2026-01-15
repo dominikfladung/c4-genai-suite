@@ -313,10 +313,15 @@ export class ConfigurationsController {
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
   @Header('Content-Type', 'application/json')
-  @Header('Content-Disposition', 'attachment; filename="configuration.json"')
-  async exportConfiguration(@Param('id') id: number) {
+  async exportConfiguration(@Param('id', ParseIntPipe) id: number, @Req() request: Request) {
     const query = new ExportConfiguration(id);
     const result: ExportConfigurationResponse = await this.queryBus.execute(query);
+
+    // Set dynamic filename based on configuration name
+    const sanitizedName = result.data.name.replace(/[^a-zA-Z0-9\-_ ]/g, '_');
+    const filename = `${sanitizedName}_config.json`;
+    request.res?.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
     return result.data;
   }
 
