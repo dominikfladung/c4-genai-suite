@@ -7,7 +7,7 @@ export class AddConfigurationHistory1737410559284 implements MigrationInterface 
     // Create configuration_history table
     await queryRunner.query(`
       CREATE TABLE "configuration_history" (
-        "id" SERIAL NOT NULL,
+        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "configurationId" integer NOT NULL,
         "version" integer NOT NULL,
         "action" character varying NOT NULL,

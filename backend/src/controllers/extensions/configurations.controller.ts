@@ -319,31 +319,6 @@ export class ConfigurationsController {
     return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
   }
 
-  @Get(':id/history/:version')
-  @ApiOperation({ operationId: 'getConfigurationVersion', description: 'Gets a specific version of a configuration.' })
-  @ApiParam({
-    name: 'id',
-    description: 'The ID of the configuration.',
-    required: true,
-    type: Number,
-  })
-  @ApiParam({
-    name: 'version',
-    description: 'The version number.',
-    required: true,
-    type: Number,
-  })
-  @ApiOkResponse({ type: ConfigurationHistoryDto })
-  @Role(BUILTIN_USER_GROUP_ADMIN)
-  @UseGuards(RoleGuard)
-  async getConfigurationVersion(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('version', ParseIntPipe) version: number,
-  ): Promise<ConfigurationHistoryDto> {
-    const historyEntry = await this.historyService.getVersion(id, version);
-    return ConfigurationHistoryDto.fromDomain(historyEntry);
-  }
-
   @Post(':id/history/:version/restore')
   @ApiOperation({ operationId: 'restoreConfiguration', description: 'Restores a configuration to a specific version.' })
   @ApiParam({
@@ -413,25 +388,5 @@ export class ConfigurationsController {
       from: ConfigurationHistoryDto.fromDomain(comparison.from),
       to: ConfigurationHistoryDto.fromDomain(comparison.to),
     };
-  }
-
-  @Get('history/recent')
-  @ApiOperation({
-    operationId: 'getRecentChanges',
-    description: 'Gets recent changes across all configurations.',
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Maximum number of results to return.',
-    required: false,
-    type: Number,
-  })
-  @ApiOkResponse({ type: [ConfigurationHistoryDto] })
-  @Role(BUILTIN_USER_GROUP_ADMIN)
-  @UseGuards(RoleGuard)
-  async getRecentChanges(@Query('limit') limit?: string): Promise<ConfigurationHistoryDto[]> {
-    const limitNum = limit ? parseInt(limit, 10) : 50;
-    const history = await this.historyService.getRecentChanges(limitNum);
-    return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
   }
 }

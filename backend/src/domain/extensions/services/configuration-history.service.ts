@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -10,11 +10,14 @@ import {
   ExtensionSnapshot,
 } from 'src/domain/database';
 import { ConfigurationHistoryRepository } from 'src/domain/database/repositories/configuration-history.repository';
+import { ConfiguredExtension } from '../interfaces';
 import { maskKeyValues } from '../use-cases/utils';
 import { ExplorerService } from './explorer-service';
 
 @Injectable()
 export class ConfigurationHistoryService {
+  private readonly logger = new Logger(ConfigurationHistoryService.name);
+
   constructor(
     @InjectRepository(ConfigurationHistoryEntity)
     private readonly historyRepository: ConfigurationHistoryRepository,
@@ -53,15 +56,12 @@ export class ConfigurationHistoryService {
         const maskedValues = { ...ext.values };
         const extension = this.explorerService.getExtension(ext.name);
         if (extension) {
-          // Create a properly typed object for maskKeyValues
-          const tempConfigured: { spec: typeof extension.spec; values: Record<string, any> } = {
+          // Create a properly typed ConfiguredExtension for maskKeyValues
+          const tempConfigured: Partial<ConfiguredExtension> = {
             spec: extension.spec,
             values: maskedValues,
           };
-          // Note: maskKeyValues expects ConfiguredExtension but we only need spec and values
-          // This is safe as maskKeyValues only accesses these properties
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          maskKeyValues(tempConfigured as any);
+          maskKeyValues(tempConfigured as ConfiguredExtension);
         }
 
         extensions.push({
@@ -75,17 +75,10 @@ export class ConfigurationHistoryService {
       }
     }
 
-    // Map status enum to snapshot format
-    const statusMap = {
-      [ConfigurationStatus.ENABLED]: 'enabled' as const,
-      [ConfigurationStatus.DISABLED]: 'disabled' as const,
-      [ConfigurationStatus.DELETED]: 'deleted' as const,
-    };
-
     return {
       name: configuration.name,
       description: configuration.description,
-      status: statusMap[configuration.status],
+      status: configuration.status as 'enabled' | 'disabled' | 'deleted',
       agentName: configuration.agentName,
       chatFooter: configuration.chatFooter,
       chatSuggestions: configuration.chatSuggestions,

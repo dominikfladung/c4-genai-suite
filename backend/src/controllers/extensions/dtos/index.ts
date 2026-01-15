@@ -874,7 +874,7 @@ export class ConfigurationHistoryDto {
     description: 'The ID of the history entry.',
     required: true,
   })
-  id!: number;
+  id!: string;
 
   @ApiProperty({
     description: 'The ID of the configuration.',

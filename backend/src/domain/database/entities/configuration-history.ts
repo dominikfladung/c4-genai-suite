@@ -30,8 +30,8 @@ export interface ExtensionSnapshot {
 
 @Entity({ name: 'configuration_history', schema })
 export class ConfigurationHistoryEntity {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
   @Column({ type: 'int' })
   configurationId!: number;

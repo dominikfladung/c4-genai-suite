@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource, IsNull, Not } from 'typeorm';
 import { ConfigurationEntity, ConfigurationStatus, ConversationEntity } from 'src/domain/database';
@@ -15,6 +15,8 @@ export class DeleteConfiguration {
 
 @CommandHandler(DeleteConfiguration)
 export class DeleteConfigurationHandler implements ICommandHandler<DeleteConfiguration, any> {
+  private readonly logger = new Logger(DeleteConfigurationHandler.name);
+
   constructor(
     private dataSource: DataSource,
     private readonly i18n: I18nService,
@@ -31,7 +33,7 @@ export class DeleteConfigurationHandler implements ICommandHandler<DeleteConfigu
         await this.historyService.saveSnapshot(id, userId, 'delete', 'Configuration deleted');
       } catch (snapshotError) {
         // Log error but don't fail the delete operation
-        console.error('Failed to save deletion snapshot:', snapshotError);
+        this.logger.error('Failed to save deletion snapshot', snapshotError);
       }
     }
 
