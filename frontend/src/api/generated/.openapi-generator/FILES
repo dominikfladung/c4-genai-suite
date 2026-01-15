@@ -18,7 +18,9 @@ models/ChangePasswordDto.ts
 models/ChatSuggestionDto.ts
 models/ChatUICallbackResultDto.ts
 models/ChunkDto.ts
+models/CompareVersions200Response.ts
 models/ConfigurationDto.ts
+models/ConfigurationHistoryDto.ts
 models/ConfigurationUserValuesDto.ts
 models/ConfigurationsDto.ts
 models/ConversationDto.ts
