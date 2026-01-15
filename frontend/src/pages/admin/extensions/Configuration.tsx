@@ -1,10 +1,11 @@
 import { ActionIcon, Menu } from '@mantine/core';
-import { IconCopy, IconDots, IconEdit, IconTrash } from '@tabler/icons-react';
-import { memo } from 'react';
+import { IconCopy, IconDots, IconEdit, IconHistory, IconTrash } from '@tabler/icons-react';
+import { memo, useState } from 'react';
 import { ConfigurationDto } from 'src/api';
 import { ConfirmDialog, TransientNavLink } from 'src/components';
 import { cn } from 'src/lib';
 import { texts } from 'src/texts';
+import { ConfigurationHistoryModal } from './ConfigurationHistoryModal';
 
 interface ConfigurationProps {
   // The configuration to render.
@@ -21,6 +22,7 @@ interface ConfigurationProps {
 
 export const Configuration = memo((props: ConfigurationProps) => {
   const { configuration, onDelete, onUpdate, onDuplicate } = props;
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <li className="group flex items-center !px-0">
@@ -45,6 +47,9 @@ export const Configuration = memo((props: ConfigurationProps) => {
           <Menu.Item leftSection={<IconCopy size={14} />} onClick={() => onDuplicate(configuration)}>
             {texts.common.duplicate}
           </Menu.Item>
+          <Menu.Item leftSection={<IconHistory size={14} />} onClick={() => setShowHistory(true)}>
+            View History
+          </Menu.Item>
           <ConfirmDialog
             title={texts.extensions.removeConfigurationConfirmTitle}
             text={texts.extensions.removeConfigurationConfirmText}
@@ -58,6 +63,13 @@ export const Configuration = memo((props: ConfigurationProps) => {
           </ConfirmDialog>
         </Menu.Dropdown>
       </Menu>
+      {showHistory && (
+        <ConfigurationHistoryModal
+          configurationId={configuration.id}
+          configurationName={configuration.name}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </li>
   );
 });

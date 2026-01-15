@@ -2,6 +2,7 @@ export * from './blob';
 export * from './cache';
 export * from './conversation';
 export * from './configuration';
+export * from './configuration-history';
 export * from './extension';
 export * from './file';
 export * from './bucket';

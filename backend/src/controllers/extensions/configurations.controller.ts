@@ -26,7 +26,7 @@ import {
   UpdateExtension,
   UpdateExtensionResponse,
 } from 'src/domain/extensions';
-import { ExplorerService } from 'src/domain/extensions/services';
+import { ConfigurationHistoryService, ExplorerService } from 'src/domain/extensions/services';
 import {
   GetConfigurationUserValues,
   GetConfigurationUserValuesResponse,
@@ -36,6 +36,7 @@ import { UpdateConfigurationUserValues } from '../../domain/extensions/use-cases
 import {
   BucketAvailabilityDto,
   ConfigurationDto,
+  ConfigurationHistoryDto,
   ConfigurationsDto,
   ConfigurationUserValuesDto,
   CreateExtensionDto,
@@ -53,6 +54,7 @@ export class ConfigurationsController {
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
     private readonly explorer: ExplorerService,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   @Get('')
@@ -95,8 +97,8 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: ConfigurationDto })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async postConfiguration(@Body() body: UpsertConfigurationDto) {
-    const command = new CreateConfiguration(body);
+  async postConfiguration(@Body() body: UpsertConfigurationDto, @Req() req: Request) {
+    const command = new CreateConfiguration(body, req.user.id);
 
     const result: CreateConfigurationResponse = await this.commandBus.execute(command);
 
@@ -114,8 +116,8 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: ConfigurationDto })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async putConfiguration(@Param('id') id: number, @Body() body: UpsertConfigurationDto) {
-    const command = new UpdateConfiguration(id, body);
+  async putConfiguration(@Param('id') id: number, @Body() body: UpsertConfigurationDto, @Req() req: Request) {
+    const command = new UpdateConfiguration(id, body, req.user.id);
 
     const result: UpdateConfigurationResponse = await this.commandBus.execute(command);
 
@@ -133,8 +135,8 @@ export class ConfigurationsController {
   @ApiNoContentResponse()
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async deleteConfiguration(@Param('id') id: number) {
-    const command = new DeleteConfiguration(id);
+  async deleteConfiguration(@Param('id') id: number, @Req() req: Request) {
+    const command = new DeleteConfiguration(id, req.user.id);
 
     await this.commandBus.execute(command);
   }
@@ -194,8 +196,8 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: ExtensionDto })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async postExtension(@Param('id') id: number, @Body() body: CreateExtensionDto) {
-    const command = new CreateExtension(id, body);
+  async postExtension(@Param('id') id: number, @Body() body: CreateExtensionDto, @Req() req: Request) {
+    const command = new CreateExtension(id, body, req.user.id);
     const result: CreateExtensionResponse = await this.commandBus.execute(command);
 
     return ExtensionDto.fromDomain(result.extension);
@@ -218,8 +220,13 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: ExtensionDto })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async putExtension(@Param('id') id: number, @Param('extensionId') extensionId: number, @Body() body: UpdateExtensionDto) {
-    const command = new UpdateExtension(+extensionId, body);
+  async putExtension(
+    @Param('id') id: number,
+    @Param('extensionId') extensionId: number,
+    @Body() body: UpdateExtensionDto,
+    @Req() req: Request,
+  ) {
+    const command = new UpdateExtension(+extensionId, body, req.user.id, id);
 
     const result: UpdateExtensionResponse = await this.commandBus.execute(command);
 
@@ -243,8 +250,8 @@ export class ConfigurationsController {
   @ApiNoContentResponse()
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async deleteExtension(@Param('id') id: number, @Param('extensionId') extensionId: number) {
-    const command = new DeleteExtension(+extensionId);
+  async deleteExtension(@Param('id') id: number, @Param('extensionId') extensionId: number, @Req() req: Request) {
+    const command = new DeleteExtension(+extensionId, req.user.id, id);
 
     await this.commandBus.execute(command);
   }
@@ -288,11 +295,98 @@ export class ConfigurationsController {
   @ApiOkResponse({ type: ConfigurationDto })
   @Role(BUILTIN_USER_GROUP_ADMIN)
   @UseGuards(RoleGuard)
-  async duplicate(@Param('id') id: number) {
-    const command = new DuplicateConfiguration(id);
+  async duplicate(@Param('id') id: number, @Req() req: Request) {
+    const command = new DuplicateConfiguration(id, req.user.id);
 
     const result: DuplicateConfigurationResponse = await this.commandBus.execute(command);
 
     return ConfigurationDto.fromDomain(result.configuration);
+  }
+
+  @Get(':id/history')
+  @ApiOperation({ operationId: 'getConfigurationHistory', description: 'Gets version history for a configuration.' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the configuration.',
+    required: true,
+    type: Number,
+  })
+  @ApiOkResponse({ type: [ConfigurationHistoryDto] })
+  @Role(BUILTIN_USER_GROUP_ADMIN)
+  @UseGuards(RoleGuard)
+  async getConfigurationHistory(@Param('id', ParseIntPipe) id: number): Promise<ConfigurationHistoryDto[]> {
+    const history = await this.historyService.getHistory(id);
+    return history.map((h) => ConfigurationHistoryDto.fromDomain(h));
+  }
+
+  @Post(':id/history/:version/restore')
+  @ApiOperation({ operationId: 'restoreConfiguration', description: 'Restores a configuration to a specific version.' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the configuration.',
+    required: true,
+    type: Number,
+  })
+  @ApiParam({
+    name: 'version',
+    description: 'The version number to restore to.',
+    required: true,
+    type: Number,
+  })
+  @ApiOkResponse({ type: ConfigurationDto })
+  @Role(BUILTIN_USER_GROUP_ADMIN)
+  @UseGuards(RoleGuard)
+  async restoreConfiguration(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('version', ParseIntPipe) version: number,
+    @Req() req: Request,
+  ): Promise<ConfigurationDto> {
+    await this.historyService.restoreVersion(id, version, req.user.id);
+    // Get the updated configuration
+    const result: GetConfigurationResponse = await this.queryBus.execute(new GetConfiguration(id));
+    return ConfigurationDto.fromDomain(result.configuration);
+  }
+
+  @Get(':id/history/compare/:fromVersion/:toVersion')
+  @ApiOperation({ operationId: 'compareVersions', description: 'Compares two versions of a configuration.' })
+  @ApiParam({
+    name: 'id',
+    description: 'The ID of the configuration.',
+    required: true,
+    type: Number,
+  })
+  @ApiParam({
+    name: 'fromVersion',
+    description: 'The starting version number.',
+    required: true,
+    type: Number,
+  })
+  @ApiParam({
+    name: 'toVersion',
+    description: 'The ending version number.',
+    required: true,
+    type: Number,
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        from: { $ref: '#/components/schemas/ConfigurationHistoryDto' },
+        to: { $ref: '#/components/schemas/ConfigurationHistoryDto' },
+      },
+    },
+  })
+  @Role(BUILTIN_USER_GROUP_ADMIN)
+  @UseGuards(RoleGuard)
+  async compareVersions(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('fromVersion', ParseIntPipe) fromVersion: number,
+    @Param('toVersion', ParseIntPipe) toVersion: number,
+  ) {
+    const comparison = await this.historyService.compareVersions(id, fromVersion, toVersion);
+    return {
+      from: ConfigurationHistoryDto.fromDomain(comparison.from),
+      to: ConfigurationHistoryDto.fromDomain(comparison.to),
+    };
   }
 }

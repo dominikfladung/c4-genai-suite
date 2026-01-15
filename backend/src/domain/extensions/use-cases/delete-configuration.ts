@@ -1,23 +1,42 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DataSource, IsNull, Not } from 'typeorm';
 import { ConfigurationEntity, ConfigurationStatus, ConversationEntity } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
 import { I18nService } from 'src/localization/i18n.service';
+import { ConfigurationHistoryService } from '../services';
 
 export class DeleteConfiguration {
-  constructor(public readonly id: number) {}
+  constructor(
+    public readonly id: number,
+    public readonly userId?: string,
+  ) {}
 }
 
 @CommandHandler(DeleteConfiguration)
 export class DeleteConfigurationHandler implements ICommandHandler<DeleteConfiguration, any> {
+  private readonly logger = new Logger(DeleteConfigurationHandler.name);
+
   constructor(
     private dataSource: DataSource,
     private readonly i18n: I18nService,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: DeleteConfiguration): Promise<any> {
-    const { id } = command;
+    const { id, userId } = command;
+
+    // Save snapshot before starting the deletion transaction
+    // This ensures we capture the current state before any changes
+    if (userId) {
+      try {
+        await this.historyService.saveSnapshot(id, userId, 'delete', 'Configuration deleted');
+      } catch (snapshotError) {
+        // Log error but don't fail the delete operation
+        this.logger.error('Failed to save deletion snapshot', snapshotError);
+      }
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 

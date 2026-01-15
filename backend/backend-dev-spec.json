@@ -983,6 +983,137 @@
         "tags": ["extensions"]
       }
     },
+    "/api/configurations/{id}/history": {
+      "get": {
+        "description": "Gets version history for a configuration.",
+        "operationId": "getConfigurationHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the configuration.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConfigurationHistoryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["extensions"]
+      }
+    },
+    "/api/configurations/{id}/history/{version}/restore": {
+      "post": {
+        "description": "Restores a configuration to a specific version.",
+        "operationId": "restoreConfiguration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the configuration.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "version",
+            "required": true,
+            "in": "path",
+            "description": "The version number to restore to.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["extensions"]
+      }
+    },
+    "/api/configurations/{id}/history/compare/{fromVersion}/{toVersion}": {
+      "get": {
+        "description": "Compares two versions of a configuration.",
+        "operationId": "compareVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the configuration.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "fromVersion",
+            "required": true,
+            "in": "path",
+            "description": "The starting version number.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "toVersion",
+            "required": true,
+            "in": "path",
+            "description": "The ending version number.",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "from": {
+                      "$ref": "#/components/schemas/ConfigurationHistoryDto"
+                    },
+                    "to": {
+                      "$ref": "#/components/schemas/ConfigurationHistoryDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["extensions"]
+      }
+    },
     "/api/extensions/test": {
       "post": {
         "description": "Tests an extension.",
@@ -3773,6 +3904,50 @@
           }
         },
         "required": ["extensions"]
+      },
+      "ConfigurationHistoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the history entry."
+          },
+          "configurationId": {
+            "type": "number",
+            "description": "The ID of the configuration."
+          },
+          "version": {
+            "type": "number",
+            "description": "The version number of this snapshot."
+          },
+          "action": {
+            "type": "string",
+            "description": "The action that was performed."
+          },
+          "changedBy": {
+            "type": "string",
+            "description": "The user ID who made the change."
+          },
+          "changedByName": {
+            "type": "string",
+            "description": "The user name who made the change."
+          },
+          "snapshot": {
+            "type": "object",
+            "description": "The configuration snapshot at this version.",
+            "additionalProperties": true
+          },
+          "changeComment": {
+            "type": "string",
+            "description": "Optional comment describing the change."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "The timestamp when this version was created."
+          }
+        },
+        "required": ["id", "configurationId", "version", "action", "snapshot", "createdAt"]
       },
       "TestExtensionDto": {
         "type": "object",

@@ -2,9 +2,16 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BucketEntity, ConfigurationEntity, ConversationEntity, ExtensionEntity, UserGroupEntity } from 'src/domain/database';
+import {
+  BucketEntity,
+  ConfigurationEntity,
+  ConfigurationHistoryEntity,
+  ConversationEntity,
+  ExtensionEntity,
+  UserGroupEntity,
+} from 'src/domain/database';
 import { ConfigurationUserEntity } from '../database/entities/configuration-user';
-import { ExplorerService } from './services';
+import { ConfigurationHistoryService, ExplorerService } from './services';
 import {
   CreateConfigurationHandler,
   CreateExtensionHandler,
@@ -31,6 +38,7 @@ import { UpdateConfigurationUserValuesHandler } from './use-cases/update-configu
     TypeOrmModule.forFeature([
       BucketEntity,
       ConfigurationEntity,
+      ConfigurationHistoryEntity,
       ConfigurationUserEntity,
       ConversationEntity,
       ExtensionEntity,
@@ -44,6 +52,7 @@ import { UpdateConfigurationUserValuesHandler } from './use-cases/update-configu
     DeleteConfigurationHandler,
     DeleteExtensionHandler,
     ExplorerService,
+    ConfigurationHistoryService,
     GetBucketAvailabilityHandler,
     GetConfigurationsHandler,
     GetExtensionHandler,
@@ -56,6 +65,6 @@ import { UpdateConfigurationUserValuesHandler } from './use-cases/update-configu
     GetConfigurationUserValuesHandler,
     UpdateConfigurationUserValuesHandler,
   ],
-  exports: [ExplorerService],
+  exports: [ExplorerService, ConfigurationHistoryService],
 })
 export class ExtensionModule {}

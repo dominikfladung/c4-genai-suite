@@ -14,6 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ChatSuggestionDto } from 'src/controllers/shared';
+import { ConfigurationHistoryEntity } from 'src/domain/database';
 import {
   ConfigurationModel,
   ConfigurationUserValuesModel,
@@ -864,6 +865,77 @@ export class BucketAvailabilityDto {
   static fromDomain(source: GetBucketAvailabilityResponse) {
     const result = new BucketAvailabilityDto();
     result.extensions = source.extensions;
+    return result;
+  }
+}
+
+export class ConfigurationHistoryDto {
+  @ApiProperty({
+    description: 'The ID of the history entry.',
+    required: true,
+  })
+  id!: string;
+
+  @ApiProperty({
+    description: 'The ID of the configuration.',
+    required: true,
+  })
+  configurationId!: number;
+
+  @ApiProperty({
+    description: 'The version number of this snapshot.',
+    required: true,
+  })
+  version!: number;
+
+  @ApiProperty({
+    description: 'The action that was performed.',
+    required: true,
+  })
+  action!: string;
+
+  @ApiProperty({
+    description: 'The user ID who made the change.',
+    required: false,
+  })
+  changedBy?: string;
+
+  @ApiProperty({
+    description: 'The user name who made the change.',
+    required: false,
+  })
+  changedByName?: string;
+
+  @ApiProperty({
+    description: 'The configuration snapshot at this version.',
+    required: true,
+    additionalProperties: true,
+  })
+  snapshot!: any;
+
+  @ApiProperty({
+    description: 'Optional comment describing the change.',
+    required: false,
+  })
+  changeComment?: string;
+
+  @ApiProperty({
+    description: 'The timestamp when this version was created.',
+    required: true,
+  })
+  createdAt!: Date;
+
+  static fromDomain(source: ConfigurationHistoryEntity) {
+    const result = new ConfigurationHistoryDto();
+    result.id = source.id;
+    result.configurationId = source.configurationId;
+    result.version = source.version;
+    result.action = source.action;
+    result.changedBy = source.changedBy;
+    result.changedByName = source.user?.name;
+    result.snapshot = source.snapshot;
+    result.changeComment = source.changeComment;
+    result.createdAt = source.createdAt;
     return result;
   }
 }

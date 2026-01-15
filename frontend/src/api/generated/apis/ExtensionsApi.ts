@@ -17,7 +17,9 @@
 import * as runtime from '../runtime';
 import type {
   BucketAvailabilityDto,
+  CompareVersions200Response,
   ConfigurationDto,
+  ConfigurationHistoryDto,
   ConfigurationUserValuesDto,
   ConfigurationsDto,
   CreateExtensionDto,
@@ -30,8 +32,12 @@ import type {
 import {
     BucketAvailabilityDtoFromJSON,
     BucketAvailabilityDtoToJSON,
+    CompareVersions200ResponseFromJSON,
+    CompareVersions200ResponseToJSON,
     ConfigurationDtoFromJSON,
     ConfigurationDtoToJSON,
+    ConfigurationHistoryDtoFromJSON,
+    ConfigurationHistoryDtoToJSON,
     ConfigurationUserValuesDtoFromJSON,
     ConfigurationUserValuesDtoToJSON,
     ConfigurationsDtoFromJSON,
@@ -49,6 +55,12 @@ import {
     UpsertConfigurationDtoFromJSON,
     UpsertConfigurationDtoToJSON,
 } from '../models/index';
+
+export interface CompareVersionsRequest {
+    id: number;
+    fromVersion: number;
+    toVersion: number;
+}
 
 export interface DeleteConfigurationRequest {
     id: number;
@@ -69,6 +81,10 @@ export interface GetBucketAvailabilityRequest {
 }
 
 export interface GetConfigurationRequest {
+    id: number;
+}
+
+export interface GetConfigurationHistoryRequest {
     id: number;
 }
 
@@ -108,6 +124,11 @@ export interface RebuildExtensionRequest {
     testExtensionDto: TestExtensionDto;
 }
 
+export interface RestoreConfigurationRequest {
+    id: number;
+    version: number;
+}
+
 export interface TestExtensionRequest {
     testExtensionDto: TestExtensionDto;
 }
@@ -121,6 +142,55 @@ export interface UpdateConfigurationUserValuesRequest {
  * 
  */
 export class ExtensionsApi extends runtime.BaseAPI {
+
+    /**
+     * Compares two versions of a configuration.
+     * 
+     */
+    async compareVersionsRaw(requestParameters: CompareVersionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CompareVersions200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling compareVersions().'
+            );
+        }
+
+        if (requestParameters['fromVersion'] == null) {
+            throw new runtime.RequiredError(
+                'fromVersion',
+                'Required parameter "fromVersion" was null or undefined when calling compareVersions().'
+            );
+        }
+
+        if (requestParameters['toVersion'] == null) {
+            throw new runtime.RequiredError(
+                'toVersion',
+                'Required parameter "toVersion" was null or undefined when calling compareVersions().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/api/configurations/{id}/history/compare/{fromVersion}/{toVersion}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))).replace(`{${"fromVersion"}}`, encodeURIComponent(String(requestParameters['fromVersion']))).replace(`{${"toVersion"}}`, encodeURIComponent(String(requestParameters['toVersion']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CompareVersions200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Compares two versions of a configuration.
+     * 
+     */
+    async compareVersions(id: number, fromVersion: number, toVersion: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CompareVersions200Response> {
+        const response = await this.compareVersionsRaw({ id: id, fromVersion: fromVersion, toVersion: toVersion }, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Deletes a configuration.
@@ -306,6 +376,41 @@ export class ExtensionsApi extends runtime.BaseAPI {
      */
     async getConfiguration(id: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ConfigurationDto> {
         const response = await this.getConfigurationRaw({ id: id }, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Gets version history for a configuration.
+     * 
+     */
+    async getConfigurationHistoryRaw(requestParameters: GetConfigurationHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ConfigurationHistoryDto>>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling getConfigurationHistory().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/api/configurations/{id}/history`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ConfigurationHistoryDtoFromJSON));
+    }
+
+    /**
+     * Gets version history for a configuration.
+     * 
+     */
+    async getConfigurationHistory(id: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ConfigurationHistoryDto>> {
+        const response = await this.getConfigurationHistoryRaw({ id: id }, initOverrides);
         return await response.value();
     }
 
@@ -626,6 +731,48 @@ export class ExtensionsApi extends runtime.BaseAPI {
      */
     async rebuildExtension(testExtensionDto: TestExtensionDto, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ExtensionDto> {
         const response = await this.rebuildExtensionRaw({ testExtensionDto: testExtensionDto }, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Restores a configuration to a specific version.
+     * 
+     */
+    async restoreConfigurationRaw(requestParameters: RestoreConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ConfigurationDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling restoreConfiguration().'
+            );
+        }
+
+        if (requestParameters['version'] == null) {
+            throw new runtime.RequiredError(
+                'version',
+                'Required parameter "version" was null or undefined when calling restoreConfiguration().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/api/configurations/{id}/history/{version}/restore`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id']))).replace(`{${"version"}}`, encodeURIComponent(String(requestParameters['version']))),
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ConfigurationDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Restores a configuration to a specific version.
+     * 
+     */
+    async restoreConfiguration(id: number, version: number, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ConfigurationDto> {
+        const response = await this.restoreConfigurationRaw({ id: id, version: version }, initOverrides);
         return await response.value();
     }
 

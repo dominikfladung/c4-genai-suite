@@ -11,6 +11,7 @@ import {
 } from 'src/domain/database';
 import { assignDefined } from 'src/lib';
 import { ConfigurationModel } from '../interfaces';
+import { ConfigurationHistoryService } from '../services';
 import { buildConfiguration } from './utils';
 
 type Values = Partial<
@@ -32,6 +33,7 @@ export class UpdateConfiguration {
   constructor(
     public readonly id: number,
     public readonly values: Values,
+    public readonly userId?: string,
   ) {}
 }
 
@@ -46,10 +48,11 @@ export class UpdateConfigurationHandler implements ICommandHandler<UpdateConfigu
     private readonly configurations: ConfigurationRepository,
     @InjectRepository(UserGroupEntity)
     private readonly userGroups: UserGroupRepository,
+    private readonly historyService: ConfigurationHistoryService,
   ) {}
 
   async execute(command: UpdateConfiguration): Promise<any> {
-    const { id, values } = command;
+    const { id, values, userId } = command;
     const {
       agentName,
       chatFooter,
@@ -71,6 +74,21 @@ export class UpdateConfigurationHandler implements ICommandHandler<UpdateConfigu
 
     if (!entity) {
       throw new NotFoundException();
+    }
+
+    // Save snapshot before updating.
+    // NOTE: This snapshot is intentionally saved outside of the database transaction
+    // used for the actual configuration update. As a result, it is possible for the
+    // snapshot to be persisted even if the subsequent update fails, or for the update
+    // to succeed while the snapshot save fails. This mirrors the behavior of delete
+    // operations where snapshots are also taken outside the main transaction to avoid
+    // potential deadlocks. Consumers of configuration history should be aware that the
+    // history is best-effort and may contain such inconsistencies. If stronger
+    // consistency guarantees are required, both this handler and the
+    // ConfigurationHistoryService must be adapted to participate in the same
+    // transaction boundary.
+    if (userId) {
+      await this.historyService.saveSnapshot(id, userId, 'update', 'Configuration updated');
     }
 
     if (userGroupIds) {

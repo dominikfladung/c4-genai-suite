@@ -28,7 +28,10 @@ type Values = Partial<
 >;
 
 export class CreateConfiguration {
-  constructor(public readonly values: Values) {}
+  constructor(
+    public readonly values: Values,
+    public readonly userId?: string,
+  ) {}
 }
 
 export class CreateConfigurationResponse {
